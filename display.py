@@ -7,11 +7,11 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from mpd import MPDClient
+from mutagen import File
 
 global app, label, mpdClient, dim, libPath, defaultImage
 
-def getAlbumName():
-    songPath = libPath + '/' + mpdClient.currentsong()['file']
+def getCoverPath(songPath):
     songDir = os.path.dirname(songPath)
     candidates = ['Folder.jpg', 'Folder.png']
     for candidate in candidates:
@@ -46,9 +46,18 @@ def initWindow():
     return w
 
 def updateLabel():
-    albumName = getAlbumName()
-    pixmap = QPixmap(albumName)
-    if albumName == None or pixmap.isNull():
+    songPath = libPath + '/' + mpdClient.currentsong()['file']
+    coverPath = getCoverPath(songPath)
+    if coverPath == None:
+        # Try finding ID3 attached
+        easy = File(songPath)
+        artwork = easy.tags['APIC:'].data # access APIC frame and grab the image
+        pixmap = QPixmap()
+        pixmap.loadFromData(artwork)
+    else:
+        pixmap = QPixmap(coverPath)
+    # Fallback
+    if pixmap.isNull():
         pixmap = QPixmap(defaultImage)
     pixmap = pixmap.scaled(dim, dim, Qt.KeepAspectRatio, Qt.SmoothTransformation)
     label.setPixmap(pixmap)
