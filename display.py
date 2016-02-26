@@ -48,16 +48,17 @@ def initWindow():
 def updateLabel():
     songPath = libPath + '/' + mpdClient.currentsong()['file']
     coverPath = getCoverPath(songPath)
-    if coverPath == None:
-        # Try finding ID3 attached
-        easy = File(songPath)
-        artwork = easy.tags['APIC:'].data # access APIC frame and grab the image
+    apic = File(songPath).tags.get('APIC:')
+    # Prioritize path in folder
+    if coverPath != None:
+        pixmap = QPixmap(coverPath)
+    # Try finding ID3 attached
+    elif apic != None:
+        artwork = apic.data # access APIC frame and grab the image
         pixmap = QPixmap()
         pixmap.loadFromData(artwork)
-    else:
-        pixmap = QPixmap(coverPath)
     # Fallback
-    if pixmap.isNull():
+    else:
         pixmap = QPixmap(defaultImage)
     pixmap = pixmap.scaled(dim, dim, Qt.KeepAspectRatio, Qt.SmoothTransformation)
     label.setPixmap(pixmap)
