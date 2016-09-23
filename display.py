@@ -7,7 +7,8 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from mpd import MPDClient
-from mutagen import File
+from mutagen import File as Mutagen_file
+from mutagen import mp3 as Mutagen_mp3
 
 global app, label, mpdClient, dim, libPath, defaultImage
 
@@ -45,23 +46,31 @@ def initWindow():
 
     return w
 
+def displayArt(pixmap):
+    pixmap = pixmap.scaled(dim, dim, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+    label.setPixmap(pixmap)
+
 def updateLabel():
     songPath = libPath + '/' + mpdClient.currentsong()['file']
     coverPath = getCoverPath(songPath)
-    apic = File(songPath).tags.get('APIC:')
     # Prioritize path in folder
     if coverPath != None:
         pixmap = QPixmap(coverPath)
+        displayArt(pixmap)
+        return
     # Try finding ID3 attached
-    elif apic != None:
+    try:
+        apic = Mutagen_file(songPath).tags.get('APIC:')
+    except Mutagen_mp3.HeaderNotFoundError as e:
+        displayArt(QPixmap())
+        return
+    if apic != None:
         artwork = apic.data # access APIC frame and grab the image
         pixmap = QPixmap()
         pixmap.loadFromData(artwork)
-    # Fallback
-    else:
-        pixmap = QPixmap(defaultImage)
-    pixmap = pixmap.scaled(dim, dim, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-    label.setPixmap(pixmap)
+        displayArt(pixmap)
+        return
+    displayArt(QPixmap())
 
 def main():
     global label, dim, libPath, app, defaultImage
